@@ -1,0 +1,26 @@
+{
+  "name": "landiq",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KimFarida/WTF-LandIQ.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KimFarida/WTF-LandIQ/issues"
+  },
+  "homepage": "https://github.com/KimFarida/WTF-LandIQ#readme",
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "mysql2": "^3.17.1",
+    "sequelize": "^6.37.7"
+  }
+}
