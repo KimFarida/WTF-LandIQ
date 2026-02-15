@@ -14,12 +14,46 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   User.init({
-    firstName: DataTypes.STRING,
-    lastName: DataTypes.STRING,
-    email: DataTypes.STRING,
-    phoneNumber: DataTypes.STRING,
-    passwordHash: DataTypes.STRING,
-    jwtRefreshToken: DataTypes.STRING
+    id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: DataTypes.INTEGER
+      },
+      firstName: {
+        allowNull: false,
+        type: DataTypes.STRING
+      },
+      lastName: {
+        allowNull: false,
+        type: DataTypes.STRING
+      },
+      email: {
+        allowNull: false,
+        type: DataTypes.STRING,
+        unique: true
+      },
+      phoneNumber: {
+        allowNull: false,
+        type: DataTypes.STRING
+      },
+      passwordHash: {
+        allowNull: false,
+        type: DataTypes.STRING
+      },
+      jwtRefreshToken: {
+        type: DataTypes.STRING
+      },
+      createdAt: {
+        allowNull: false,
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
+      },
+      updatedAt: {
+        allowNull: false,
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
+      }
   }, {
     sequelize,
     modelName: 'User',
