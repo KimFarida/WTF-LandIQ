@@ -1,63 +1,58 @@
 'use strict';
-const {
-  Model
-} = require('sequelize');
+const { Model } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
-      // define association here
+      this.hasMany(models.LandAssessment, {
+        foreignKey: 'user_id',
+        onDelete: 'CASCADE',
+      });
+      this.hasMany(models.Comparison, {
+        foreignKey: 'user_id',
+        onDelete: 'CASCADE',
+      });
     }
   }
+
   User.init({
     id: {
-        allowNull: false,
-        primaryKey: true,
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4
-      },
-      firstName: {
-        allowNull: false,
-        type: DataTypes.STRING
-      },
-      lastName: {
-        allowNull: false,
-        type: DataTypes.STRING
-      },
-      email: {
-        allowNull: false,
-        type: DataTypes.STRING,
-        unique: true
-      },
-      phoneNumber: {
-        allowNull: false,
-        type: DataTypes.STRING
-      },
-      passwordHash: {
-        allowNull: false,
-        type: DataTypes.STRING
-      },
-      jwtRefreshToken: {
-        type: DataTypes.STRING
-      },
-      createdAt: {
-        allowNull: false,
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
-      },
-      updatedAt: {
-        allowNull: false,
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
-      }
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true,
+      allowNull: false,
+    },
+    first_name: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
+    last_name: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+    },
+    email: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      unique: true,
+    },
+    phone_number: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    password_hash: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    jwt_refresh_token: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   }, {
     sequelize,
     modelName: 'User',
-    underscored: true,
+    tableName: 'users',
+    timestamps: true,
   });
+
   return User;
 };
