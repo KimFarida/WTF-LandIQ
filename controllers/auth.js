@@ -1,11 +1,24 @@
+require("dotenv").config();``
 const db = require('../models/index');
 const { Op } = require('sequelize');
 const bycrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFESH_SECRET;
+
+
+const generateTokens = (user)=>{
+    const accessToken = jwt.sign({ id:user.id },JWT_SECRET,{ expiresIn: '15m' })
+    const refreshToken = jwt.sign({ id: user.id },JWT_REFRESH_SECRET, { expiresIn: '7d' });
+    return { accessToken, refreshToken };
+}
 
 const registerUser = async (req, res)=>{
+    const t = await db.sequelize.transaction()
     try {
         const {firstName, lastName, email, phoneNumber, password } = req.body;
-        console.log(firstName)
+
         // Check if email or password exists, if so reject
         const user = await db.User.findOne({
             where: {
@@ -17,7 +30,8 @@ const registerUser = async (req, res)=>{
         });
 
         if(user){
-            res.send(400).json({message: 'A user exists with this email/phone number'})
+            await t.rollback()
+            return res.status(400).json({message: 'A user exists with this email/phone number'})
         }
 
         const passwordHash = await bycrypt.hash(password, 10);
@@ -29,15 +43,35 @@ const registerUser = async (req, res)=>{
             phoneNumber: phoneNumber,
             email: email,
             passwordHash:passwordHash,
-            // create JWT refresh token 
-        })
+        }, { transaction: t});
 
-        res.status(201).json({
+        const { accessToken, refreshToken } = generateTokens(newUser);
+        // TODO hash JWT before saving
+        newUser.jwtRefreshToken = refreshToken;
+
+        await newUser.save({ transaction: t});
+
+        await t.commit();
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+             secure: true,
+              sameSite: 'Strict',
+               maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+
+        return res.status(201).json({
             message: 'User created sucessfuly!',
-            userId: newUser.id
+            userId: newUser.id,
+            token: accessToken
         })
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create user' });
+        // Add db rollback on error
+        await t.rollback();
+        console.log(error);
+        // Add db rollback on error
+        return res.status(500).json({ error: 'Failed to create user' });
     }
     
 };
