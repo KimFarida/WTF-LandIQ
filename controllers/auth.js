@@ -104,7 +104,7 @@ const loginUser = async (req, res) =>{
                maxAge: 7 * 24 * 60 * 60 * 1000
         });
     // return token to loggined User
-    return res.status({message: 'User logged in successfully', token: accessToken })
+    return res.status(201).json({message: 'User logged in successfully', token: accessToken })
 } catch (error) {
         
         console.log(error);
