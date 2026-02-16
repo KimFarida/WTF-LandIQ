@@ -1,6 +1,6 @@
 require("dotenv").config();``
 const db = require('../models/index');
-const { Op, where } = require('sequelize');
+const { Op } = require('sequelize');
 const bycrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 
@@ -138,17 +138,19 @@ const logOutUser = async (req, res) =>{
 const refreshTokenHandler = async (req, res)=>{
     try {
 
+        // get refresh Token from coookie header
         const token = req.cookies?.refreshToken;
         
         if (!token){
             return res.status(401).json({ message: 'Refresh token missing' });
         }
 
+        // check if valid refresh Token 
         jwt.verify(token, JWT_REFRESH_SECRET, (err, decoded)=>{
             if (err) {
                 return res.status(403).json({ message: 'Invalid or expired refresh token' });
             }
-
+            // create new accessToken
             const newAccessToken = jwt.sign(
                 { id: decoded.id },
                 process.env.JWT_SECRET,
@@ -164,4 +166,6 @@ const refreshTokenHandler = async (req, res)=>{
         return res.status(500).json({ error: 'Failed to create token' });
     }
 }
+
+// TODO IMPLEMENT FORGOT PASSWORD 
 module.exports = {registerUser, loginUser, logOutUser, refreshTokenHandler};
