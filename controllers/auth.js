@@ -90,11 +90,13 @@ const loginUser = async (req, res) =>{
         return res.status(400).json({message:'Invalid Login Credentials'})
     }
 
-    // generate access Token, refreesh Token
+    // generate access Token, refeesh Token
     const { accessToken, refreshToken } = generateTokens(user);
 
     // update refreshToken in db
     user.jwtRefreshToken = refreshToken;
+
+    await user.save();
 
     // set cookie
     res.cookie('refreshToken', refreshToken, {
@@ -132,4 +134,34 @@ const logOutUser = async (req, res) =>{
         return res.status(500).json({ error: 'Failed to logout user' });
     }
 }
-module.exports = {registerUser, loginUser, logOutUser};
+
+const refreshTokenHandler = async (req, res)=>{
+    try {
+
+        const token = req.cookies?.refreshToken;
+        
+        if (!token){
+            return res.status(401).json({ message: 'Refresh token missing' });
+        }
+
+        jwt.verify(token, JWT_REFRESH_SECRET, (err, decoded)=>{
+            if (err) {
+                return res.status(403).json({ message: 'Invalid or expired refresh token' });
+            }
+
+            const newAccessToken = jwt.sign(
+                { id: decoded.id },
+                process.env.JWT_SECRET,
+                { expiresIn: '15m' }
+            );
+
+            return res.status(200).json({ token: newAccessToken });
+
+        });
+        
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Failed to create token' });
+    }
+}
+module.exports = {registerUser, loginUser, logOutUser, refreshTokenHandler};

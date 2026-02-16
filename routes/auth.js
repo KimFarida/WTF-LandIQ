@@ -11,5 +11,6 @@ router.get('/', (req, res)=>{
 router.post('/register',registerRules, authController.registerUser)
 router.post('/login', loginRules, authController.loginUser)
 router.post('/logout', authenticateToken, authController.logOutUser)
+router.post('/refresh-token', authController.refreshTokenHandler)
 
 module.exports = router;
