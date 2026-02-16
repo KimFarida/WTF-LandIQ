@@ -70,10 +70,47 @@ const registerUser = async (req, res)=>{
         // Add db rollback on error
         await t.rollback();
         console.log(error);
-        // Add db rollback on error
         return res.status(500).json({ error: 'Failed to create user' });
     }
     
 };
 
-module.exports = {registerUser} 
+const loginUser = async (req, res) =>{
+    try {
+    // get email and password
+    const {email, password} = req.body;
+
+    // check if user of said email
+    const user = await db.User.findOne({
+            where: { email },
+    });
+
+    // If user not found or incorrect password
+    if(!user || !bycrypt.compare(password, user.passwordHash)){
+        return res.status(400).json({message:'Invalid Login Credentials'})
+    }
+
+    // generate access Token, refreesh Token
+    const { accessToken, refreshToken } = generateTokens(user);
+
+    // update refreshToken in db
+    user.jwtRefreshToken = refreshToken;
+
+    // set cookie
+    res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+             secure: true,
+              sameSite: 'Strict',
+               maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+    // return token to loggined User
+    return res.status({message: 'User logged in successfully', token: accessToken })
+} catch (error) {
+        
+        console.log(error);
+        return res.status(500).json({ error: 'Failed to login user' });
+    }
+}
+   
+
+module.exports = {registerUser, loginUser};
