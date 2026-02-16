@@ -1,10 +1,10 @@
 const {body, validationResult } = require('express-validator');
 
 const registerRules = [
-    body('firstName').trim().notEmpty().withMessage('firstName is required'),
-    body('lastName').trim().notEmpty().withMessage('lastName is required'),
+    body('first_name').trim().notEmpty().withMessage('firstName is required'),
+    body('last_name').trim().notEmpty().withMessage('lastName is required'),
     body('email').trim().notEmpty().withMessage('email is required'),
-    body('phoneNumber').trim().notEmpty().withMessage('phoneNumber is required'),
+    body('phone_number').trim().notEmpty().withMessage('phoneNumber is required'),
     body('password').trim().notEmpty().withMessage('password is required'),
 
     body('email').isEmail().withMessage('Invalid Email'),

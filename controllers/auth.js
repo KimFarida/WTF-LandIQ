@@ -17,14 +17,14 @@ const generateTokens = (user)=>{
 const registerUser = async (req, res)=>{
     const t = await db.sequelize.transaction()
     try {
-        const {firstName, lastName, email, phoneNumber, password } = req.body;
+        const {first_name, last_name, email, phone_number, password } = req.body;
 
         // Check if email or password exists, if so reject
         const user = await db.User.findOne({
             where: {
                 [Op.or]: [
                     {email: email},
-                    {phoneNumber: phoneNumber}
+                    {phone_number: phone_number}
                 ]
             }
         });
@@ -34,15 +34,15 @@ const registerUser = async (req, res)=>{
             return res.status(400).json({message: 'A user exists with this email/phone number'})
         }
 
-        const passwordHash = await bycrypt.hash(password, 10);
+        const password_hash = await bycrypt.hash(password, 10);
 
         // save user in the db 
         const newUser = await db.User.create({
-            firstName: firstName,
-            lastName: lastName,
-            phoneNumber: phoneNumber,
+            first_name: first_name,
+            last_name: last_name,
+            phone_number: phone_number,
             email: email,
-            passwordHash:passwordHash,
+            password_hash:password_hash,
         }, { transaction: t});
 
         const { accessToken, refreshToken } = generateTokens(newUser);
@@ -63,7 +63,7 @@ const registerUser = async (req, res)=>{
 
         return res.status(201).json({
             message: 'User created sucessfuly!',
-            userId: newUser.id,
+            user_id: newUser.id,
             token: accessToken
         })
     } catch (error) {
@@ -86,7 +86,7 @@ const loginUser = async (req, res) =>{
     });
 
     // If user not found or incorrect password
-    if(!user || !bycrypt.compare(password, user.passwordHash)){
+    if(!user || !bycrypt.compare(password, user.password_hash)){
         return res.status(400).json({message:'Invalid Login Credentials'})
     }
 
@@ -94,7 +94,7 @@ const loginUser = async (req, res) =>{
     const { accessToken, refreshToken } = generateTokens(user);
 
     // update refreshToken in db
-    user.jwtRefreshToken = refreshToken;
+    user.jwt_refresh_token = refreshToken;
 
     await user.save();
 
