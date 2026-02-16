@@ -1,6 +1,6 @@
 require("dotenv").config();``
 const db = require('../models/index');
-const { Op } = require('sequelize');
+const { Op, where } = require('sequelize');
 const bycrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 
@@ -111,6 +111,25 @@ const loginUser = async (req, res) =>{
         return res.status(500).json({ error: 'Failed to login user' });
     }
 }
-   
 
-module.exports = {registerUser, loginUser};
+const logOutUser = async (req, res) =>{
+    try {
+
+        const { id } = req.user;
+
+        const [affectedRows] = await db.User.update(
+            { jwtRefreshToken: null },
+            {where: { id } }
+        );
+        
+        if (affectedRows == 0){
+            return res.status(400).json({ message: 'User not found'});
+        }
+
+        return res.status(200).json({message: 'User logged out successfully'})
+    }catch (error) {
+        console.log(error);
+        return res.status(500).json({ error: 'Failed to logout user' });
+    }
+}
+module.exports = {registerUser, loginUser, logOutUser};
