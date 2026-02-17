@@ -12,7 +12,6 @@ module.exports = {
       mapping_unit: {
         type: Sequelize.STRING(20),
         allowNull: false,
-        unique: true,
       },
       ecological_zone: {
         type: Sequelize.STRING(100),
@@ -100,6 +99,7 @@ module.exports = {
       },
     });
 
+    // Index on mapping_unit for lookup queries (not unique)
     await queryInterface.addIndex('soil_mapping_units', ['mapping_unit']);
   },
 
