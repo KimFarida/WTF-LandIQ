@@ -76,6 +76,78 @@ class GeoLookupService {
     return null;
   }
 
+    /**
+   * Nearest neighbour fallback
+   * When no polygon contains the point, find the closest polygon centroid
+   *
+   * @param {number} latitude
+   * @param {number} longitude
+   * @returns {{ mapping_unit: string, is_estimated: true, distance_km: number }}
+   */
+  findNearestMappingUnit(latitude, longitude) {
+    if (!this.isLoaded) {
+      throw new Error('GeoJSON not loaded. Call loadGeoJSON() first.');
+    }
+
+    const point = turf.point([longitude, latitude]);
+    let closestFeature = null;
+    let closestDistance = Infinity;
+
+    for (const feature of this.geojson.features) {
+      try {
+        const centroid = turf.centroid(feature);
+        const distance = turf.distance(point, centroid, { units: 'kilometers' });
+
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestFeature = feature;
+        }
+      } catch (e) {
+        continue; // Skip malformed geometries
+      }
+    }
+
+    if (!closestFeature) return null;
+
+    return {
+      mapping_unit: closestFeature.properties.mapping_unit,
+      is_estimated: true,
+      distance_km: Math.round(closestDistance * 10) / 10,
+    };
+  }
+
+/**
+   * Master lookup — tries exact match first, falls back to nearest neighbour
+   *
+   *
+   * @param {number} latitude
+   * @param {number} longitude
+   * @returns {{
+   *   mapping_unit: string,
+   *   is_estimated: boolean,
+   *   distance_km?: number,
+   *   outside_bounds: boolean
+   * } | null}
+   */
+  lookup(latitude, longitude) {
+    const withinBounds = this.isWithinBounds(latitude, longitude);
+
+    // Try exact polygon match first
+    const exactMatch = this.findMappingUnit(latitude, longitude);
+    if (exactMatch) {
+      return { ...exactMatch, outside_bounds: false };
+    }
+
+    // Fall back to nearest neighbour
+    const nearest = this.findNearestMappingUnit(latitude, longitude);
+    if (nearest) {
+      return { ...nearest, outside_bounds: !withinBounds };
+    }
+
+    return null;
+  }
+
+
   /**
    * Check if coordinates fall within the dataset's geographic bounds
    * Fast pre-check before running the expensive point-in-polygon lookup
