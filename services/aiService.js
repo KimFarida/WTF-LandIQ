@@ -117,3 +117,56 @@ function buildGeneralPrompt(latitude, longitude, locationHint = 'Nigeria') {
             [/INST]`;
 }
 
+// HuggingFace API Call 
+/**
+ *
+ * @param {string} prompt
+ * @returns {{ text: string, responseTimeMs: number }}
+ */
+async function callHuggingFace(prompt) {
+    const startTime = Date.now()
+
+    const response = await fetch(HF_API_URL, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${HF_API_KEY}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            inputs: prompt,
+            parameters:{
+                max_new_token: 600,
+                temperature: 0.7,
+                top_p: 0.9,
+                do_sample: true,
+                return_full_text:false // return generated text without prompt
+            },
+        }),
+    });
+
+    const responseTimeMs = Date.now() - startTime;
+
+    if (!response.ok){
+        const errorText = await response.text();
+        throw new Error(`HuggingFace API error ${response.status}: ${errorText}`);
+
+    }
+
+    const data = await response.json();
+
+    // Hugging face returns array of generated text
+    const generatedText = Array.isArray(data) 
+    ? data[0]?.generated_text
+    :data.generated_text;
+
+    if (!generatedText){
+        throw new Error('HuggungFace returned empty response');
+    }
+
+    return{
+        text: generatedText.trim(),
+        responseTimeMs
+    }
+    
+}
+
