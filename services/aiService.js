@@ -1,4 +1,4 @@
-const { SoilHealthScore, AiExplainationLog } = require('../models')
+const { SoilHealthScore, AiExplanationLog } = require('../models')
 
 const HF_API_KEY = process.env.HF_API_KEY;
 const HF_API_URL = process.env.HF_API_URL;
@@ -170,3 +170,155 @@ async function callHuggingFace(prompt) {
     
 }
 
+// Main function
+/*
+**
+ * Generate AI explanation for an assessment
+ * Updates SoilHealthScore and logs the call to AiExplanationLog
+
+ * @param {object} soilUnit   - Full SoilMappingUnit record
+ * @param {object} score      - SoilHealthScore record (must exist in DB)
+ * @param {boolean} isEstimated - Whether this used nearest neighbour fallback
+ */
+async function generateExplanation(soilUnit, score, isEstimated = false) {
+  const prompt = buildPrompt(soilUnit, score, isEstimated);
+  let rawResponse = null;
+  let responseTimeMs = null;
+  let status = 'pending';
+  let errorMessage = null;
+  let explanation = null;
+
+  try {
+    const result = await callHuggingFace(prompt);
+    rawResponse = result.text;
+    responseTimeMs = result.responseTimeMs;
+    explanation = result.text;
+    status = 'success';
+
+    console.log(`✅ AI explanation generated in ${responseTimeMs}ms`);
+
+  } catch (error) {
+    console.error('❌ HuggingFace API failed:', error.message);
+    errorMessage = error.message;
+    status = 'failed';
+
+    // Fallback — build a structured explanation from raw data
+    explanation = buildFallbackExplanation(soilUnit, score, isEstimated);
+    status = 'fallback';
+  }
+
+  // Update the score record with explanation
+  await SoilHealthScore.update(
+    {
+      ai_plain_explanation: explanation,
+      ai_model_used: status === 'success' ? MODEL_NAME : 'fallback',
+      ai_explanation_status: status,
+    },
+    { where: { score_id: score.score_id } }
+  );
+
+  // Log every call for transparency
+  await AiExplanationLog.create({
+    score_id: score.score_id,
+    prompt_sent: prompt,
+    raw_response: rawResponse,
+    model_name: status === 'success' ? MODEL_NAME : 'fallback',
+    response_time_ms: responseTimeMs,
+    status,
+    error_message: errorMessage,
+  });
+
+  return explanation;
+}
+
+/**
+ * Generate a general purpose explanation for locations outside dataset coverage
+ *
+ * @param {number} latitude
+ * @param {number} longitude
+ * @param {string} locationHint
+ * @returns {string} explanation
+ */
+async function generateGeneralExplanation(latitude, longitude, locationHint) {
+  const prompt = buildGeneralPrompt(latitude, longitude, locationHint);
+
+  try {
+    const result = await callHuggingFace(prompt);
+    return {
+      explanation: result.text,
+      source: 'ai_general',
+      is_estimated: true,
+    };
+  } catch (error) {
+    console.error('❌ General AI explanation failed:', error.message);
+    return {
+      explanation: `This location (${latitude}, ${longitude}) is outside our current dataset coverage area. 
+        We recommend contacting your local agricultural extension office for a physical soil assessment. 
+        You can also reach out to the Federal Ministry of Agriculture and Rural Development for guidance.`,
+      source: 'fallback_general',
+      is_estimated: true,
+    };
+  }
+}
+
+// ── Fallback Explanation Builder
+
+/**
+ * Builds a structured plain text explanation from raw soil data
+ * Used when HuggingFace API is unavailable
+ *
+ * @param {object} soilUnit
+ * @param {object} score
+ * @param {boolean} isEstimated
+ * @returns {string}
+ */
+function buildFallbackExplanation(soilUnit, score, isEstimated) {
+  const badgeMessages = {
+    GOLD: 'This is excellent farmland with strong agricultural potential.',
+    SILVER: 'This land has moderate agricultural potential and can support farming with proper management.',
+    BRONZE: 'This land has significant limitations and requires substantial improvement before farming.',
+  };
+
+  const riskMessages = {
+    LOW: 'The land shows low risk of long-term degradation.',
+    MEDIUM: 'There is moderate risk of degradation — proper land management is recommended.',
+    HIGH: 'This land is at high risk of degradation and needs careful management to remain productive.',
+  };
+
+  const drainageAdvice = {
+    'Well Drained': 'Drainage is good — a wide range of crops can be grown here.',
+    'Poorly Drained': 'Poor drainage is a concern. Consider raised beds or drainage channels to manage waterlogging.',
+    'Moderately Drained': 'Drainage is moderate. Avoid water-intensive crops in rainy season.',
+    'Imperfectly Drained': 'Drainage is imperfect. Water management will be important for good yields.',
+    'Shallow Drained': 'Shallow drainage limits root development. Raised bed farming is recommended.',
+  };
+
+  const estimatedNote = isEstimated
+    ? '\n\nNOTE: This assessment is estimated based on nearby soil data. Conduct a physical soil test before making major investment decisions.'
+    : '';
+
+  return `VERDICT
+${badgeMessages[score.badge] || 'Assessment complete.'}
+
+SOIL HEALTH SCORE: ${score.total_score}/100 (${score.badge})
+${riskMessages[score.degradation_risk] || ''}
+
+LAND PROPERTIES
+• Drainage: ${soilUnit.drainage || 'Unknown'}
+• Soil pH: ${soilUnit.ph_range || 'Unknown'} — ${soilUnit.ph_description || ''}
+• Slope: ${soilUnit.slope || 'Unknown'}
+• Soil Texture: ${soilUnit.soil_texture || 'Unknown'}
+• Soil Depth: ${soilUnit.soil_depth || 'Unknown'}
+• Ecological Zone: ${soilUnit.ecological_zone || 'Unknown'}
+
+DRAINAGE ADVICE
+${drainageAdvice[soilUnit.drainage] || 'Assess drainage conditions before planting.'}
+
+CROPS SUITED TO THIS LAND
+${soilUnit.major_crops || 'Contact your local agricultural extension office for crop recommendations.'}
+
+LAND SUITABILITY
+${soilUnit.suitability || 'Not specified.'}${estimatedNote}`;
+}
+
+module.exports = { generateExplanation, generateGeneralExplanation };
