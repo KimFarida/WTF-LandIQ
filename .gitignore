@@ -1,7 +1,6 @@
 *node_modules
 .env
-data/*
-!/data/landiq_soil_data.geojson
+*data
 *api_test
 *.DS_Store
-*.log
+*.logdata/landiq_soil_data.geojson
