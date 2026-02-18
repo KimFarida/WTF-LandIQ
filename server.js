@@ -15,6 +15,7 @@ const comparisonRoutes = require('./routes/comparison')
 const geoLookupService = require('./services/geoLookupService');
 
 const app = express();
+app.set('trust proxy', 1); 
 
 // middleware
 app.use(express.json());

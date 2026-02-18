@@ -1,4 +1,3 @@
-require("dotenv").config();``
 const db = require('../models/index');
 const { Op } = require('sequelize');
 const bycrypt = require('bcryptjs')
