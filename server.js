@@ -1,7 +1,11 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
+const swaggerUi = require('swagger-ui-express');
+
+
 
 const db = require('./models/index');
+const swaggerSpec = require('./config/swagger');
 
 const { apiLimiter, assessmentLimiter} = require('./middleware/rateLimiter')
 
@@ -35,6 +39,15 @@ try {
   process.exit(1); // Exit if GeoJSON can't be loaded
 }
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui.topbar { display: none }',
+  customSiteTitel: 'LandIQ API Docs',
+}))
+
+app.get('/api-docs.json', (req, res)=>{
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec)
+})
 
 // Health check for Railway
 app.get('/health', (req, res) => {
@@ -57,6 +70,17 @@ app.use('/api/auth', authRoutes);
 app.use('/api/assessments', assessmentRoutes, assessmentLimiter);
 app.use('/api/comparisons', comparisonRoutes);
 
-app.listen(5000, ()=>{
-    console.log("App started")
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.method} ${req.path} does not exist`,
+    documentation: '/api-docs',
+  });
+});
+
+const PORT = process.env.PORT || 3000
+app.listen(PORT, ()=>{
+    console.log(`🌱 LandIQ server running on port ${PORT}`);
+    console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
 })

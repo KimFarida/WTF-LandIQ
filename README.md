@@ -1,354 +1,283 @@
-# 🌱 LandIQ — Backend API
+# 🌱 LandIQ — Soil Health Assessment API
 
-> AI-powered soil health scoring for agricultural land assessments.  
-> Built with **Node.js**, **Express**, **Sequelize**, and **PostgreSQL**.
+> **Empowering farmers and land investors in Nigeria with AI-powered soil health insights**
 
----
+LandIQ is a REST API that provides geospatial soil health assessments using a comprehensive dataset of 658 soil mapping units across Nigeria, combined with AI-generated explanations to help users make informed land acquisition decisions.
 
-## 📋 Table of Contents
-
-- [Project Overview](#project-overview)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Database Setup](#database-setup)
-- [API Endpoints](#api-endpoints)
-- [Data Flow](#data-flow)
-- [HuggingFace Model Integration](#huggingface-model-integration)
-- [Cron Jobs](#cron-jobs)
-- [Development Roadmap](#development-roadmap)
-- [Contributing](#contributing)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new)
 
 ---
 
-## Project Overview
+## 🚀 Live API
 
-LandIQ is a mobile-first AgriTech application that helps Nigerian farmers and agricultural SMEs evaluate farmland soil health before acquisition or leasing. Users input land coordinates (via map or manual entry), and the system returns a **Gold / Silver / Bronze** soil health rating powered by AI.
+**Production:** [https://wtf-landiq-production.up.railway.app](https://wtf-landiq-production.up.railway.app)
 
-**Aligned SDG:** SDG 15 – Life on Land
+**API Documentation:** [https://wtf-landiq-production.up.railway.app/api-docs](https://wtf-landiq-production.up.railway.app/api-docs)
 
 ---
 
-## Tech Stack
+## ✨ Features
+
+- 🌍 **Geospatial Soil Lookup** — 658 pre-mapped soil units covering Nigeria
+- 🏅 **Gold/Silver/Bronze Ratings** — Simple soil health classification
+- 🤖 **AI-Powered Explanations** — Farmer-friendly advice via HuggingFace
+- 📍 **Nearest Neighbor Fallback** — Estimated results for gaps in coverage
+- 🔄 **Side-by-Side Comparison** — Compare up to 2 land parcels
+- ⏰ **24-Hour Temporary Assessments** — Try before you save
+- 🔐 **JWT Authentication** — Secure user accounts
+- 📊 **Degradation Risk Assessment** — LOW/MEDIUM/HIGH risk classification
+
+---
+
+## 🎯 SDG Alignment
+
+This project supports [**SDG 15: Life on Land**](https://sdgs.un.org/goals/goal15) by enabling sustainable land use decisions through data-driven soil health insights.
+
+---
+
+## 🛠️ Tech Stack
 
 | Layer | Technology |
-|---|---|
-| Runtime | Node.js |
+|-------|-----------|
+| Runtime | Node.js 20+ |
 | Framework | Express.js |
+| Database | MySQL 8.0 |
 | ORM | Sequelize |
-| Database | MySQL |
-| Authentication | JWT (JSON Web Tokens) |
-| AI / ML | HuggingFace Inference API |
-| Satellite Data | Remote Sensing / NDVI APIs |
-| Soil Data | Global Soil Property APIs |
-| Weather Data | Climate & Rainfall APIs |
-| Mapping | Map Static Image APIs |
-| Task Scheduling | node-cron |
+| Geospatial | Turf.js |
+| AI | HuggingFace Inference API |
+| Auth | JWT (jsonwebtoken) |
+| Docs | Swagger UI |
+| Hosting | Railway |
 
 ---
 
-## Project Structure
+## 📋 API Endpoints
 
-```
-landiq-backend/
-├── config/
-│   └── config.js          # Sequelize DB connection
-├── controllers/
-│   ├── authController.js
-│   ├── assessmentController.js
-│   ├── scoreController.js
-│   └── comparisonController.js
-├── middleware/
-│   ├── authMiddleware.js     # JWT verification
-│   └── errorHandler.js
-├── models/
-│   ├── index.js              # Sequelize model loader
-│   ├── User.js
-│   ├── LandAssessment.js
-│   ├── EnvironmentalData.js
-│   ├── SoilHealthScore.js
-│   ├── Comparison.js
-│   └── ComparisonItem.js
-├── routes/
-│   ├── authRoutes.js
-│   ├── assessmentRoutes.js
-│   ├── scoreRoutes.js
-│   └── comparisonRoutes.js
-├── services/
-│   ├── huggingfaceService.js # HuggingFace model calls
-│   ├── environmentalService.js # External API data fetching
-│   ├── scoringService.js     # Score calculation logic
-│   └── mapService.js         # Map snapshot URL generation
-├── cron/
-│   └── cleanupAssessments.js # 24hr temporary data cleanup
-├── utils/
-│   └── jwtUtils.js
-├── .env.example
-├── .gitignore
-├── package.json
-└── server.js
-```
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Create new user account |
+| POST | `/api/auth/login` | Login and get JWT tokens |
+| POST | `/api/auth/refresh` | Refresh access token |
+| POST | `/api/auth/logout` | Invalidate refresh token |
+
+### Assessments
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/assessments` | Create land assessment | ✅ |
+| GET | `/api/assessments` | List saved assessments | ✅ |
+| GET | `/api/assessments/:id` | Get assessment details | ✅ |
+| PATCH | `/api/assessments/:id/save` | Save temporary assessment | ✅ |
+| DELETE | `/api/assessments/:id` | Delete assessment | ✅ |
+
+### Comparisons
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/comparisons` | Create comparison | ✅ |
+| GET | `/api/comparisons` | List comparisons | ✅ |
+| GET | `/api/comparisons/:id` | Get comparison | ✅ |
+| POST | `/api/comparisons/:id/items` | Add assessment (max 2) | ✅ |
+| DELETE | `/api/comparisons/:id/items/:itemId` | Remove assessment | ✅ |
+| DELETE | `/api/comparisons/:id` | Delete comparison | ✅ |
 
 ---
 
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js v18+
-- PostgreSQL 14+
-- npm or yarn
+- Node.js 20+
+- MySQL 8.0+
+- HuggingFace API key ([get one free](https://huggingface.co/settings/tokens))
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/KimFarida/WTF-LandIQ.git
-
+git clone https://github.com/yourusername/landiq-backend.git
+cd landiq-backend
 
 # Install dependencies
 npm install
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your values
+# Edit .env with your credentials
 
-# Run database migrations
-npx sequelize-cli db:migrate
+# Run migrations
+npm run migrate
+
+# Seed soil mapping units (658 records)
+npm run seed
 
 # Start development server
-npm run dev
+npm start
 ```
+
+Server runs at `http://localhost:3000`
+
+API docs at `http://localhost:3000/api-docs`
 
 ---
 
-## Environment Variables
-
-Create a `.env` file in the root directory. See `.env.example`:
-
-```env
-# Server
-PORT=3000
-NODE_ENV=development
-
-# Database
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=landiq_db
-DB_USER=your_db_user
-DB_PASSWORD=your_db_password
-
-# JWT
-JWT_SECRET=your_jwt_secret_key
-JWT_EXPIRES_IN=7d
-JWT_REFRESH_SECRET=your_refresh_secret
-JWT_REFRESH_EXPIRES_IN=30d
-
-# HuggingFace
-HUGGINGFACE_API_KEY=your_huggingface_api_key
-HUGGINGFACE_MODEL_ID=your_chosen_model_id
-
-# External APIs
-SATELLITE_API_KEY=your_satellite_api_key
-SOIL_DATA_API_KEY=your_soil_api_key
-WEATHER_API_KEY=your_weather_api_key
-MAP_API_KEY=your_map_api_key
-```
-
-> ⚠️ Never commit your `.env` file. It is included in `.gitignore`.
-
----
-
-## Database Setup
-
-LandIQ uses **Sequelize** ORM with **MySQL**.
+## 🔐 Environment Variables
 
 ```bash
-# Create the database
-npx sequelize-cli db:create
-
-# Run all migrations
-npx sequelize-cli db:migrate
-
-# Undo last migration (if needed)
-npx sequelize-cli db:migrate:undo
-
-# Seed initial data (e.g. HuggingFace model config)
-npx sequelize-cli db:seed:all
-```
-
-### Core Models & Relationships
-
-```
-USER
- └── has many LAND_ASSESSMENT
-       ├── has one ENVIRONMENTAL_DATA
-       └── has one SOIL_HEALTH_SCORE
-
-USER
- └── has many COMPARISON
-       └── has many COMPARISON_ITEM
-             └── belongs to LAND_ASSESSMENT
-```
-
-### Temporary Assessment Strategy
-
-Unsaved assessments are stored with:
-- `is_temporary = true`
-- `expires_at = NOW() + 24 hours`
-
-A cron job runs nightly to purge expired records.  
-See [Cron Jobs](#cron-jobs) for details.
-
----
-
-## API Endpoints
-
-### Auth
-
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| POST | `/api/auth/register` | Register new user | ❌ |
-| POST | `/api/auth/login` | Login, returns JWT | ❌ |
-| POST | `/api/auth/refresh` | Refresh access token | ❌ |
-| POST | `/api/auth/logout` | Invalidate refresh token | ✅ |
-
-### Assessments
-
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| POST | `/api/assessments` | Create new land assessment | ✅ |
-| GET | `/api/assessments` | Get all saved assessments for user | ✅ |
-| GET | `/api/assessments/:id` | Get single assessment | ✅ |
-| PATCH | `/api/assessments/:id/save` | Save a temporary assessment | ✅ |
-| DELETE | `/api/assessments/:id` | Delete an assessment | ✅ |
-
-### Soil Health Score
-
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| GET | `/api/assessments/:id/score` | Get soil health score for assessment | ✅ |
-
-### Comparisons
-
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| POST | `/api/comparisons` | Create new comparison | ✅ |
-| GET | `/api/comparisons` | Get all comparisons for user | ✅ |
-| POST | `/api/comparisons/:id/items` | Add land parcel to comparison | ✅ |
-| DELETE | `/api/comparisons/:id` | Delete a comparison | ✅ |
-
----
-
-## Data Flow
-
-When a user submits land coordinates, the following pipeline executes:
-
-```
-1. POST /api/assessments
-        │
-        ▼
-2. Create LAND_ASSESSMENT record
-   (is_temporary=true, expires_at=+24hrs)
-        │
-        ▼
-3. Fetch map snapshot URL from Map API
-        │
-        ▼
-4. Call HuggingFace Model Pipeline:
-   ├── 4a. Fetch environmental data
-   │       (NDVI, soil pH, rainfall, temperature, slope...)
-   │       → Store in ENVIRONMENTAL_DATA table
-   │
-   └── 4b. Calculate soil health score
-           (weighted algorithm on environmental inputs)
-           → Map to Gold / Silver / Bronze
-           → Store in SOIL_HEALTH_SCORE table
-        │
-        ▼
-5. Return assessment result to mobile app
-        │
-        ▼
-6. User decision:
-   ├── SAVE → is_temporary=false, expires_at=NULL (permanent)
-   └── SKIP → record auto-deleted after 24hrs by cron job
+NODE_ENV=development
+DATABASE_URL=mysql://user:password@localhost:3306/landiq_dev
+HUGGINGFACE_API_KEY=hf_your_key_here
+JWT_SECRET=your_jwt_secret_here
+JWT_REFRESH_SECRET=your_refresh_secret_here
+PORT=3000
 ```
 
 ---
 
-## HuggingFace Model Integration
+## 📖 Usage Examples
 
-LandIQ uses a pre-trained HuggingFace model specialized in soil health and environmental analysis.
+### Create Assessment
 
-**Service location:** `services/huggingfaceService.js`
-
-```javascript
-// Example usage
-const { fetchEnvironmentalData, calculateSoilScore } = require('./services/huggingfaceService');
-
-// Step 1: Fetch environmental indicators for coordinates
-const envData = await fetchEnvironmentalData({ latitude, longitude });
-
-// Step 2: Calculate soil health score from environmental data
-const score = await calculateSoilScore(envData);
-// Returns: { rating: 'Gold', overall_score: 82, vegetation_index: 0.74, ... }
+```bash
+curl -X POST https://wtf-landiq-production.up.railway.app/api/assessments \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "latitude": 12.9848,
+    "longitude": 4.5579,
+    "area_hectares": 10.0
+  }'
 ```
 
-**Model config** is stored in the `HUGGINGFACE_MODEL_CONFIG` table, allowing model swapping without code changes.
-
-> 📌 Model selection is in progress. Candidate models will be evaluated from [HuggingFace Hub](https://huggingface.co/models?pipeline_tag=tabular-regression&sort=trending) based on coverage of Nigerian/West African agricultural land data.
-
----
-
-## Cron Jobs
-
-### Temporary Assessment Cleanup
-
-**File:** `cron/cleanupAssessments.js`  
-**Schedule:** Daily at 2:00 AM  
-**Purpose:** Deletes unsaved assessments and their related data after 24 hours
-
-```javascript
-const cron = require('node-cron');
-
-// Runs daily at 2:00 AM
-cron.schedule('0 2 * * *', async () => {
-  await LandAssessment.destroy({
-    where: {
-      is_temporary: true,
-      expires_at: { [Op.lt]: new Date() }
-    }
-  });
-});
+**Response:**
+```json
+{
+  "assessment_id": "123e4567-e89b-12d3-a456-426614174000",
+  "coverage": "exact",
+  "location": {
+    "latitude": 12.9848,
+    "longitude": 4.5579,
+    "area_hectares": 10.0
+  },
+  "soil_health": {
+    "badge": "GOLD",
+    "total_score": 100,
+    "degradation_risk": "LOW"
+  },
+  "soil_properties": {
+    "suitability": "Fairly Highly Suitable",
+    "drainage": "Well Drained",
+    "ph_range": "6.2 - 6.2",
+    "slope": "0 - 2%",
+    "soil_texture": "Sandy Clay",
+    "major_crops": "Sorghum, Maize, Yam, Cassava"
+  },
+  "ai_explanation": null,
+  "ai_explanation_status": "pending",
+  "is_temporary": true,
+  "expires_at": "2026-02-19T12:00:00Z"
+}
 ```
 
-> ⚠️ Ensure `ON DELETE CASCADE` is set on foreign keys in `EnvironmentalData` and `SoilHealthScore` so related records are removed automatically.
+Poll `GET /api/assessments/:id` after ~5 seconds to get the AI explanation.
 
 ---
 
-## Development Roadmap
+## 🗂️ Project Structure
 
-See full roadmap below 👇
+```
+landiq-backend/
+├── config/
+│   ├── config.js              # Sequelize database config
+│   └── swagger.js             # Swagger/OpenAPI config
+├── controllers/
+│   ├── authController.js
+│   ├── assessmentController.js
+│   └── comparisonController.js
+├── middleware/
+│   └── authMiddleware.js      # JWT verification
+├── models/
+│   ├── index.js
+│   ├── user.js
+│   ├── soilMappingUnit.js
+│   ├── landAssessment.js
+│   ├── soilHealthScore.js
+│   ├── aiExplanationLog.js
+│   ├── comparison.js
+│   └── comparisonItem.js
+├── routes/
+│   ├── authRoutes.js
+│   ├── assessmentRoutes.js
+│   └── comparisonRoutes.js
+├── services/
+│   ├── geoLookupService.js    # Turf.js spatial lookup
+│   └── aiService.js           # HuggingFace integration
+├── migrations/                 # Database migrations
+├── seeders/                    # Database seeders
+├── data/
+│   └── landiq_soil_data.geojson  # 658 soil units
+├── server.js                   # Entry point
+└── package.json
+```
 
 ---
 
-## Contributing
+## 🧪 Testing
 
-1. Create a feature branch: `git checkout -b feature/your-feature`
-2. Commit changes: `git commit -m "feat: your feature description"`
-3. Push to branch: `git push origin feature/your-feature`
-4. Open a Pull Request against `main`
+Full testing guide available in [`API_DOCUMENTATION.md`](./API_DOCUMENTATION.md)
 
-### Commit Convention
-
-Use conventional commits:
-- `feat:` new feature
-- `fix:` bug fix
-- `chore:` config/setup changes
-- `docs:` documentation updates
-- `refactor:` code restructuring
+Test credentials for demo:
+```json
+{
+  "email": "demo@landiq.app",
+  "password": "Demo1234"
+}
+```
 
 ---
 
-*LandIQ – Empowering smarter land decisions for African farmers. 🌍*
+## 📚 Documentation
+
+- **Interactive API Docs:** [Swagger UI](https://wtf-landiq-production.up.railway.app/api-docs)
+- **Full API Reference:** [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
+- **Deployment Guide:** [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
+
+---
+
+## 🤝 Contributing
+
+This is a capstone project for **Paragon Squad (Group 32)**. Contributions are welcome after project submission.
+
+### Team Tracks
+- Backend Engineering
+- Data Science
+- Mobile Development (Flutter)
+- Product Design
+- DevOps
+- Cybersecurity
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details
+
+---
+
+## 👥 Authors
+
+**Paragon Squad - Group 32**
+
+For questions or collaboration: [fariWTF@outlook.com](mailto:fariWTF@outlook.com)
+
+---
+
+## 🙏 Acknowledgments
+
+- Soil dataset provided by Data Analytic Team members
+- HuggingFace for AI inference infrastructure
+- Railway for hosting platform
+- Turf.js for geospatial processing
+
+---
+
+**Built with ❤️ for Nigerian farmers and land investors**
