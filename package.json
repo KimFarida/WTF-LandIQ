@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/KimFarida/WTF-LandIQ#readme",
   "dependencies": {
+    "@huggingface/inference": "^4.13.12",
+    "@turf/turf": "^7.3.4",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.3.1",
