@@ -5,7 +5,7 @@ const db = require('./models/index');
 
 const authRoutes = require('./routes/auth');
 const assessmentRoutes = require('./routes/assessment');
-
+const comparisonRoutes = require('./routes/comparison')
 const geoLookupService = require('./services/geoLookupService');
 
 const app = express();
@@ -40,6 +40,7 @@ app.get('/', (req, res)=>{
 })
 app.use('/api/auth', authRoutes);
 app.use('/api/assessments', assessmentRoutes);
+app.use('/api/comparisons', comparisonRoutes);
 
 app.listen(5000, ()=>{
     console.log("App started")
