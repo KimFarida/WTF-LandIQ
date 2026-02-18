@@ -52,7 +52,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
     },
     suitability: {
-      type: DataTypes.STRING(150),
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     soil_texture: {
@@ -60,7 +60,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
     },
     soil_class: {
-      type: DataTypes.STRING(100),
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     soil_depth: {
@@ -80,11 +80,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
     },
     area_percentage: {
-      type: DataTypes.DECIMAL(5, 2),
+      type: DataTypes.STRING(20),
       allowNull: true,
     },
     geo_boundary: {
-      type: DataTypes.TEXT,
+      type: DataTypes.JSON,
       allowNull: true,
     },
     badge: {

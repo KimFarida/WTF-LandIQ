@@ -38,7 +38,7 @@ module.exports = {
         allowNull: true,
       },
       suitability: {
-        type: Sequelize.STRING(150),
+        type: Sequelize.TEXT,
         allowNull: true,
       },
       soil_texture: {
@@ -46,7 +46,7 @@ module.exports = {
         allowNull: true,
       },
       soil_class: {
-        type: Sequelize.STRING(100),
+        type: Sequelize.TEXT,
         allowNull: true,
       },
       soil_depth: {
@@ -66,11 +66,11 @@ module.exports = {
         allowNull: true,
       },
       area_percentage: {
-        type: Sequelize.DECIMAL(5, 2),
+        type: Sequelize.STRING(20),
         allowNull: true,
       },
       geo_boundary: {
-        type: Sequelize.TEXT,
+        type: Sequelize.JSON,
         allowNull: true,
       },
       badge: {
