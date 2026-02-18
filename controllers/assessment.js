@@ -1,5 +1,6 @@
 const { LandAssessment, SoilMappingUnit, SoilHealthScore } = require('../models');
 const geoLookupService = require('../services/geoLookupService');
+const aiService = require('../services/aiService')
 
 /**
  * POST /api/assessments
@@ -24,25 +25,31 @@ const createAssessment = async (req, res) => {
       return res.status(400).json({ error: 'Invalid longitude. Must be between -180 and 180.' });
     }
 
-    // Check if coordinates within dataset bound (pre-check)
-    if (!geoLookupService.isWithinBounds(latitude, longitude)) {
-      return res.status(404).json({
-        error: 'Location outside coverage area',
-        message: 'This location is not covered by our soil dataset. Currently covering Nigeria.',
+    if (area_hectares <= 0) {
+      return res.status(400).json({ error: 'area_hectares must be greater than 0.' });
+    }
+
+     // Step 1: Geo lookup — exact match or nearest neighbour
+    const lookupResult = geoLookupService.lookup(latitude, longitude);
+
+     // Step 2: If completely outside Nigeria and no nearest found, use AI general advice
+    if (!lookupResult) {
+      const { explanation, source } = aiService.generateGeneralExplanation(
+        latitude, longitude, 'the specified location'
+      )
+      return res.status(200).json({
+        assessment_id: null,
+        coverage: 'none',
+        message: 'No soil dataset coverage for this location. General advice provided.',
+        ai_explanation: explanation,
+        source,
+        is_estimated: true,
       });
     }
 
-    // Find which mapping unit contains coordinates
-    const mapping_unit = geoLookupService.findMappingUnit(latitude, longitude);
+    const { mapping_unit, is_estimated,  distance_km, outside_bounds } = lookupResult;
 
-    if (!mapping_unit) {
-      return res.status(404).json({
-        error: 'No soil data available for this location',
-        message: 'These coordinates do not match any known soil mapping unit in our dataset.',
-      });
-    }
-
-    // Get the full soil mapping unit record from DB
+    //  Step 3: Get soil mapping unit record from DB
     const soilUnit = await SoilMappingUnit.findOne({
       where: { mapping_unit },
     });
@@ -66,8 +73,7 @@ const createAssessment = async (req, res) => {
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
     });
 
-    // Create the soil health score record
-    // Copy the scoring fields from the mapping unit
+    // Step 5: Create the soil health score record
     const score = await SoilHealthScore.create({
       assessment_id: assessment.assessment_id,
       unit_id: soilUnit.unit_id,
@@ -78,17 +84,27 @@ const createAssessment = async (req, res) => {
     });
 
     // Step 6: TODO - Call HuggingFace AI service here
-    // For now, we'll skip this and just return the score
+    // Fire and forget — client can poll GET /api/assessments/:id for the explanation
+    aiService.generateExplanation(soilUnit, score, is_estimated).catch(err => {
+      console.error('Background AI generation failed:', err.message);
+    });
 
     // Step 7: Return the full result
     return res.status(201).json({
       assessment_id: assessment.assessment_id,
+      coverage: is_estimated ? 'estimated' : 'exact',
+      ...(is_estimated && {
+        estimated_note: `No exact match found. Using nearest soil unit ${distance_km}km away.`,
+        distance_km,
+      }),
+      ...(outside_bounds && {
+        outside_bounds_note: 'These coordinates are outside Nigeria. Assessment is estimated from nearest known soil unit.',
+      }),
       location: {
         latitude: assessment.latitude,
         longitude: assessment.longitude,
         area_hectares: assessment.area_hectares,
       },
-      mapping_unit: soilUnit.mapping_unit,
       soil_health: {
         badge: score.badge,
         total_score: score.total_score,
@@ -98,14 +114,15 @@ const createAssessment = async (req, res) => {
         suitability: soilUnit.suitability,
         drainage: soilUnit.drainage,
         ph_range: soilUnit.ph_range,
+        ph_description: soilUnit.ph_description,
         slope: soilUnit.slope,
         soil_texture: soilUnit.soil_texture,
         soil_depth: soilUnit.soil_depth,
         ecological_zone: soilUnit.ecological_zone,
         major_crops: soilUnit.major_crops,
-        risk_factors: soilUnit.risk_factors,
       },
-      ai_explanation: score.ai_plain_explanation, // null for now until AI integration
+      ai_explanation: null, // Generating in background — poll GET /:id
+      ai_explanation_status: 'pending',
       is_temporary: assessment.is_temporary,
       expires_at: assessment.expires_at,
     });
