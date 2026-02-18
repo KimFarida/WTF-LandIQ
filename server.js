@@ -3,6 +3,8 @@ const cookieParser = require('cookie-parser');
 
 const db = require('./models/index');
 
+const { apiLimiter, assessmentLimiter} = require('./middleware/rateLimiter')
+
 const authRoutes = require('./routes/auth');
 const assessmentRoutes = require('./routes/assessment');
 const comparisonRoutes = require('./routes/comparison')
@@ -48,8 +50,11 @@ app.get('/health', (req, res) => {
 app.get('/', (req, res)=>{
     res.send("HELLO WORLD")
 })
+
+app.use('/api/', apiLimiter)
+
 app.use('/api/auth', authRoutes);
-app.use('/api/assessments', assessmentRoutes);
+app.use('/api/assessments', assessmentRoutes, assessmentLimiter);
 app.use('/api/comparisons', comparisonRoutes);
 
 app.listen(5000, ()=>{
