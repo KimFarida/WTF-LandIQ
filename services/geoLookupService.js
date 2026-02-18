@@ -68,7 +68,10 @@ class GeoLookupService {
       }
 
       if (isInside) {
-        return feature.properties.mapping_unit;
+         return {
+          mapping_unit: feature.properties.mapping_unit,
+          is_estimated: false,
+        };
       }
     }
 

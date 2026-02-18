@@ -1,8 +1,13 @@
 const { SoilHealthScore, AiExplanationLog } = require('../models')
+const { InferenceClient } = require("@huggingface/inference");
 
-const HF_API_KEY = process.env.HF_API_KEY;
-const HF_API_URL = process.env.HF_API_URL;
+
 const MODEL_NAME = process.env.MODEL_NAME;
+const HF_TOKEN = process.env.HF_API_KEY;
+
+
+// Initialize HuggingFace client
+const client = new InferenceClient(HF_TOKEN);
 
 
 // promt builder - Builds a structured prompt from soil data
@@ -27,7 +32,7 @@ function buildPrompt(soilUnit, score, isEstimated = false){
         HIGH: 'High risk of degradation',
     }[score.degradation_risk] || score.degradation_risk;
 
-    isEstimated = isEstimated ? `NOTE: No exact dataset match was found for this location. 
+    const estimatedNote  = isEstimated ? `NOTE: No exact dataset match was found for this location. 
         This assessment is based on the nearest matching soil unit 
         and should be treated as an estimate.`
        : ''
@@ -126,41 +131,25 @@ function buildGeneralPrompt(latitude, longitude, locationHint = 'Nigeria') {
 async function callHuggingFace(prompt) {
     const startTime = Date.now()
 
-    const response = await fetch(HF_API_URL, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${HF_API_KEY}`,
-            'Content-Type': 'application/json',
+    const chatCompletion = await client.chatCompletion({
+      model: MODEL_NAME,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
         },
-        body: JSON.stringify({
-            inputs: prompt,
-            parameters:{
-                max_new_token: 600,
-                temperature: 0.7,
-                top_p: 0.9,
-                do_sample: true,
-                return_full_text:false // return generated text without prompt
-            },
-        }),
-    });
+      ],
+      max_tokens: 600,
+      temperature: 0.7,
+  });
 
     const responseTimeMs = Date.now() - startTime;
 
-    if (!response.ok){
-        const errorText = await response.text();
-        throw new Error(`HuggingFace API error ${response.status}: ${errorText}`);
+    const generatedText = chatCompletion.choices[0]?.message?.content;
 
-    }
-
-    const data = await response.json();
-
-    // Hugging face returns array of generated text
-    const generatedText = Array.isArray(data) 
-    ? data[0]?.generated_text
-    :data.generated_text;
 
     if (!generatedText){
-        throw new Error('HuggungFace returned empty response');
+        throw new Error('HuggingFace returned empty response');
     }
 
     return{
@@ -321,4 +310,4 @@ LAND SUITABILITY
 ${soilUnit.suitability || 'Not specified.'}${estimatedNote}`;
 }
 
-module.exports = { generateExplanation, generateGeneralExplanation };
+module.exports = { generateExplanation, generateGeneralExplanation, buildPrompt, buildGeneralPrompt };
