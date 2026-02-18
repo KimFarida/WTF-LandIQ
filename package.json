@@ -9,7 +9,7 @@
     "seed": "npx sequelize-cli db:seed:all"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "20.x"
   },
   "repository": {
     "type": "git",
@@ -24,7 +24,7 @@
   "homepage": "https://github.com/KimFarida/WTF-LandIQ#readme",
   "dependencies": {
     "@huggingface/inference": "^4.13.12",
-    "@turf/turf": "^6.5.0",
+    "@turf/turf": "^7.3.4",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.3.1",
