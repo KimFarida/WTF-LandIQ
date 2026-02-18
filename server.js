@@ -34,7 +34,17 @@ try {
 }
 
 
-// Routes
+// Health check for Railway
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+
+// MAIN Routes
 app.get('/', (req, res)=>{
     res.send("HELLO WORLD")
 })
