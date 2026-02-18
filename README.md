@@ -273,7 +273,7 @@ For questions or collaboration: [fariWTF@outlook.com](mailto:fariWTF@outlook.com
 
 ## 🙏 Acknowledgments
 
-- Soil dataset provided by Data Analytic Team members
+- Soil dataset provided by [Your Data Team]
 - HuggingFace for AI inference infrastructure
 - Railway for hosting platform
 - Turf.js for geospatial processing
