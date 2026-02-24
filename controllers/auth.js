@@ -1,7 +1,9 @@
 const db = require('../models/index');
-const { Op } = require('sequelize');
+const { Op, where } = require('sequelize');
 const bycrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const { User } = require('../models');
+
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFESH_SECRET;
@@ -166,5 +168,41 @@ const refreshTokenHandler = async (req, res)=>{
     }
 }
 
+
+const getUser = async (req, res) => {
+    try {
+
+        const { id } = req.user;
+
+        const user = await User.findOne({
+            where : {
+                id : id
+            }
+        })
+
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({
+        user_id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        phone_number: user.phone_number,
+        created_at: user.created_at
+    
+    }).status(200);
+
+    } catch (error) {
+        console.error('Error getting user:', error);
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error.message,
+        });
+        
+    }
+}
+
 // TODO IMPLEMENT FORGOT PASSWORD 
-module.exports = {registerUser, loginUser, logOutUser, refreshTokenHandler};
+module.exports = {registerUser, loginUser, logOutUser, refreshTokenHandler, getUser};

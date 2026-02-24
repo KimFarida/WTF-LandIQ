@@ -186,4 +186,29 @@ router.post('/logout', authenticateToken, authController.logOutUser)
  */
 router.post('/refresh-token', authController.refreshTokenHandler)
 
+// Get single assessment
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     tags: [Users]
+ *     summary: Gets user profile
+ *     description: Retrieve detailed information for a specific user
+ *     security:
+ *       - bearerAuth: []
+ * 
+ *     responses:
+ *       200:
+ *         description: Assessment details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
+router.get('/me', authenticateToken, authController.getUser)
+
 module.exports = router;
